@@ -9,14 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { signUp } from "@/lib/auth-clients";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, signUp } from "@/lib/auth-clients";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function SignIn() {
+export default function SignUp() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -32,13 +33,14 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const result = await signIn.email({
+      const result = await signUp.email({
+        name,
         email,
         password,
       });
 
       if (result.error) {
-        setError(result.error.message ?? "Failed to sign in");
+        setError(result.error.message ?? "Failed to sign up");
       } else {
         router.push("/dashboard");
       }
@@ -54,10 +56,10 @@ export default function SignIn() {
       <Card className="w-full max-w-md border-gray-200 shadow-lg">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-black">
-            Sign In
+            Sign Up
           </CardTitle>
           <CardDescription className="text-gray-600">
-            Enter your credentials to access your account
+            Create an account to start tracking your job applications
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,15 +70,29 @@ export default function SignIn() {
               </div>
             )}
             <div className="space-y-2">
+              <Label htmlFor="name" className="text-gray-700">
+                Name
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="border-gray-300 focus:border-primary focus:ring-primary"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-700">
                 Email
               </Label>
               <Input
                 id="email"
                 type="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
                 required
                 className="border-gray-300 focus:border-primary focus:ring-primary"
               />
@@ -88,9 +104,9 @@ export default function SignIn() {
               <Input
                 id="password"
                 type="password"
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
                 minLength={8}
                 className="border-gray-300 focus:border-primary focus:ring-primary"
               />
@@ -102,15 +118,15 @@ export default function SignIn() {
               className="w-full bg-primary hover:bg-primary/90"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Creating account..." : "Sign Up"}
             </Button>
             <p className="text-center text-sm text-gray-600">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/sign-up"
+                href="/sign-in"
                 className="font-medium text-primary hover:underline"
               >
-                Sign up
+                Sign in
               </Link>
             </p>
           </CardFooter>
