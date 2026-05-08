@@ -2,10 +2,7 @@ import connectDB from "./db";
 import { Board, Column } from "./models";
 
 const DEFAULT_COLUMNS = [
-  {
-    name: "Wish List",
-    order: 0,
-  },
+  { name: "Wish List", order: 0 },
   { name: "Applied", order: 1 },
   { name: "Interviewing", order: 2 },
   { name: "Offer", order: 3 },
@@ -16,7 +13,10 @@ export async function initializeUserBoard(userId: string) {
   try {
     await connectDB();
 
-    const existingBoard = await Board.findOne({ userId, name: "Job Hunt" });
+    const existingBoard = await Board.findOne({
+      userId,
+      name: "Job Hunt",
+    });
 
     if (existingBoard) {
       return existingBoard;
@@ -34,7 +34,7 @@ export async function initializeUserBoard(userId: string) {
           name: col.name,
           order: col.order,
           boardId: board._id,
-          jobApplication: [],
+          jobApplications: [],
         })
       )
     );
@@ -43,7 +43,8 @@ export async function initializeUserBoard(userId: string) {
     await board.save();
 
     return board;
-  } catch (err) {
-    throw err;
+  } catch (error) {
+    console.error("Failed to initialize user board:", error);
+    return null;
   }
 }

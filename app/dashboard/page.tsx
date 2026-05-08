@@ -1,6 +1,6 @@
+import { Board, Column } from "@/lib/models"
 import { getSession } from "@/lib/auth/auth";
 import connectDB from "@/lib/db";
-import { Board } from "@/lib/models";
 import { redirect } from "next/navigation";
 import KanbanBoard from "@/components/kanban-board";
 import { Suspense } from "react";
@@ -13,9 +13,6 @@ async function getBoard(userId: string) {
     name: "Job Hunt",
   }).populate({
     path: "columns",
-    populate: {
-      path: "jobApplications",
-    },
   });
 
   if (!boardDoc) return null;
@@ -40,7 +37,9 @@ async function DashboardPage() {
           <h1 className="text-3xl font-bold text-black">Job Hunt</h1>
           <p className="text-gray-600">Track your job applications</p>
         </div>
-        <KanbanBoard board={board} userId={session.user.id} />
+        <KanbanBoard board={JSON.parse(JSON.stringify(board))} 
+        userId={session.user.id}
+        />
       </div>
     </div>
   );
