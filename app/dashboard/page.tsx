@@ -13,6 +13,9 @@ async function getBoard(userId: string) {
     name: "Job Hunt",
   }).populate({
     path: "columns",
+    populate: {
+      path: "jobApplications",
+    },
   });
 
   if (!boardDoc) return null;
