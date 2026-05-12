@@ -55,7 +55,7 @@ export async function createJobApplication(data: JobApplicationData) {
 
   const column = await Column.findOne({
     _id: columnId,
-    boardId: boardId,
+    boardId,
   });
 
   if (!column) {
@@ -80,11 +80,11 @@ export async function createJobApplication(data: JobApplicationData) {
     tags: tags || [],
     description,
     status: "applied",
-    order: maxOrder ? maxOrder.order + 1 : 0,
+    order: maxOrder ? maxOrder.order + 100 : 0,
   });
 
   await Column.findByIdAndUpdate(columnId, {
-    $push: { jobApplications: jobApplication._id },
+    $addToSet: { jobApplications: jobApplication._id },
   });
 
   revalidatePath("/dashboard");
@@ -113,119 +113,73 @@ export async function updateJobApplication(
     return { error: "Unauthorized" };
   }
 
+  await connectDB();
+
   const jobApplication = await JobApplication.findById(id);
 
   if (!jobApplication) {
     return { error: "Job application not found" };
   }
 
-  if (jobApplication.userId !== session.user.id) {
+  if (jobApplication.userId.toString() !== session.user.id) {
     return { error: "Unauthorized" };
   }
 
   const { columnId, order, ...otherUpdates } = updates;
 
-  const updatesToApply: Partial<{
-    company: string;
-    position: string;
-    location: string;
-    notes: string;
-    salary: string;
-    jobUrl: string;
-    columnId: string;
-    order: number;
-    tags: string[];
-    description: string;
-  }> = otherUpdates;
-
   const currentColumnId = jobApplication.columnId.toString();
-  const newColumnId = columnId?.toString();
+  const targetColumnId = columnId?.toString() || currentColumnId;
 
-  const isMovingToDifferentColumn =
-    newColumnId && newColumnId !== currentColumnId;
+  const isMovingColumn = targetColumnId !== currentColumnId;
+  const isReordering = order !== undefined && order !== null;
 
-  if (isMovingToDifferentColumn) {
-    await Column.findByIdAndUpdate(currentColumnId, {
-      $pull: { jobApplications: id },
-    });
+  if (isMovingColumn || isReordering) {
+    if (isMovingColumn) {
+      await Column.findByIdAndUpdate(currentColumnId, {
+        $pull: { jobApplications: id },
+      });
 
-    const jobsInTargetColumn = await JobApplication.find({
-      columnId: newColumnId,
-      _id: { $ne: id },
-    })
-      .sort({ order: 1 })
-      .lean();
-
-    let newOrderValue: number;
-
-    if (order !== undefined && order !== null) {
-      newOrderValue = order * 100;
-
-      const jobsThatNeedToShift = jobsInTargetColumn.slice(order);
-      for (const job of jobsThatNeedToShift) {
-        await JobApplication.findByIdAndUpdate(job._id, {
-          $set: { order: job.order + 100 },
-        });
-      }
-    } else {
-      if (jobsInTargetColumn.length > 0) {
-        const lastJobOrder =
-          jobsInTargetColumn[jobsInTargetColumn.length - 1].order || 0;
-        newOrderValue = lastJobOrder + 100;
-      } else {
-        newOrderValue = 0;
-      }
+      await Column.findByIdAndUpdate(targetColumnId, {
+        $addToSet: { jobApplications: id },
+      });
     }
 
-    updatesToApply.columnId = newColumnId;
-    updatesToApply.order = newOrderValue;
-
-    await Column.findByIdAndUpdate(newColumnId, {
-      $push: { jobApplications: id },
-    });
-  } else if (order !== undefined && order !== null) {
-    const otherJobsInColumn = await JobApplication.find({
-      columnId: currentColumnId,
+    const targetJobs = await JobApplication.find({
+      columnId: targetColumnId,
       _id: { $ne: id },
     })
       .sort({ order: 1 })
       .lean();
 
-    const currentJobOrder = jobApplication.order || 0;
-    const currentPositionIndex = otherJobsInColumn.findIndex(
-      (job) => job.order > currentJobOrder
+    const newIndex = Math.max(
+      0,
+      Math.min(order ?? targetJobs.length, targetJobs.length)
     );
-    const oldPositionindex =
-      currentPositionIndex === -1
-        ? otherJobsInColumn.length
-        : currentPositionIndex;
 
-    const newOrderValue = order * 100;
+    const reorderedJobs = [
+      ...targetJobs.slice(0, newIndex),
+      jobApplication,
+      ...targetJobs.slice(newIndex),
+    ];
 
-    if (order < oldPositionindex) {
-      const jobsToShiftDown = otherJobsInColumn.slice(order, oldPositionindex);
-
-      for (const job of jobsToShiftDown) {
-        await JobApplication.findByIdAndUpdate(job._id, {
-          $set: { order: job.order + 100 },
-        });
-      }
-    } else if (order > oldPositionindex) {
-      const jobsToShiftUp = otherJobsInColumn.slice(oldPositionindex, order);
-      for (const job of jobsToShiftUp) {
-        const newOrder = Math.max(0, job.order - 100);
-        await JobApplication.findByIdAndUpdate(job._id, {
-          $set: { order: newOrder },
-        });
-      }
+    for (let i = 0; i < reorderedJobs.length; i++) {
+      await JobApplication.findByIdAndUpdate(reorderedJobs[i]._id, {
+        $set: {
+          order: i * 100,
+          columnId: targetColumnId,
+        },
+      });
     }
-
-    updatesToApply.order = newOrderValue;
   }
 
-  const updated = await JobApplication.findByIdAndUpdate(id, updatesToApply, {
-    new: true,
-  });
+  const updated = await JobApplication.findByIdAndUpdate(
+    id,
+    {
+      ...otherUpdates,
+      columnId: targetColumnId,
+    },
+    { new: true }
+  );
 
   revalidatePath("/dashboard");
 
@@ -239,13 +193,15 @@ export async function deleteJobApplication(id: string) {
     return { error: "Unauthorized" };
   }
 
+  await connectDB();
+
   const jobApplication = await JobApplication.findById(id);
 
   if (!jobApplication) {
     return { error: "Job application not found" };
   }
 
-  if (jobApplication.userId !== session.user.id) {
+  if (jobApplication.userId.toString() !== session.user.id) {
     return { error: "Unauthorized" };
   }
 
@@ -254,8 +210,8 @@ export async function deleteJobApplication(id: string) {
   });
 
   await JobApplication.deleteOne({ _id: id });
+
   revalidatePath("/dashboard");
 
   return { success: true };
 }
-
