@@ -6,7 +6,7 @@ import { MoreVertical } from "lucide-react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import CreateJobApplicationDialog from "@/components/create-job-dialog";
+import CreateJobApplicationDialog from "@/components/dialogs/create-job-dialog";
 import SortableJobCard from "./sortable-job-card";
 import JobCard from "./job-card";
 import type { BoardColumn } from "./kanban-types";
