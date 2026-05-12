@@ -2,8 +2,9 @@ import { Board, Column } from "@/lib/models"
 import { getSession } from "@/lib/auth/auth";
 import connectDB from "@/lib/db";
 import { redirect } from "next/navigation";
-import KanbanBoard from "@/components/kanban-board";
+import KanbanBoard from "@/components/kanban/kanban-board";
 import { Suspense } from "react";
+
 
 async function getBoard(userId: string) {
   await connectDB();
