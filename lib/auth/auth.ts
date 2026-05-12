@@ -5,7 +5,24 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { initializeUserBoard } from "../init-user-board";
 
-const client = new MongoClient(process.env.MONGODB_URL!);
+const uri = process.env.MONGODB_URL!;
+
+if (!uri) {
+  throw new Error("Please define MONGODB_URL in .env.local");
+}
+
+const globalForMongo = globalThis as unknown as {
+  mongoClient?: MongoClient;
+};
+
+const client =
+  globalForMongo.mongoClient ??
+  new MongoClient(uri);
+
+if (process.env.NODE_ENV !== "production") {
+  globalForMongo.mongoClient = client;
+}
+
 const db = client.db();
 
 export const auth = betterAuth({

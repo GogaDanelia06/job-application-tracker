@@ -1,7 +1,20 @@
 "use client";
 
-import { Board, Column } from "@/lib/models/models.type";
-import { Award, Calendar, CheckCircle2, Mic, MoreVertical, Trash2, XCircle } from "lucide-react";
+import type { Board } from "@/lib/models/models.type";
+import type { Column } from "@/lib/models/column";
+import {
+  Award,
+  Calendar,
+  CheckCircle2,
+  Mic,
+  MoreVertical,
+  Trash2,
+  XCircle,
+  Building2,
+  MapPin,
+  Pencil,
+} from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "./ui/button";
 import {
@@ -39,11 +52,11 @@ function DroppableColumn({
   config: ColConfig;
   boardId: string;
 }) {
+  const jobs = column.jobApplications ?? [];
+
   return (
-<Card className="min-w-2xs flex-shrink-0 shadow-md p-0">
-      <CardHeader
-        className={`${config.color} text-white rounded-t-lg pb-3 pt-3`}
-      >
+    <Card className="min-w-2xs flex-shrink-0 shadow-md p-0">
+      <CardHeader className={`${config.color} text-white rounded-t-lg pb-3 pt-3`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {config.icon}
@@ -51,6 +64,7 @@ function DroppableColumn({
               {column.name}
             </CardTitle>
           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -61,6 +75,7 @@ function DroppableColumn({
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end">
               <DropdownMenuItem className="text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -71,8 +86,67 @@ function DroppableColumn({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2 pt-4 bg-gray-50/50 min-h-96 rounded-b-lg">
+      <CardContent className="space-y-3 pt-4 bg-gray-50/50 min-h-96 rounded-b-lg">
         <CreateJobApplicationDialog columnId={column._id} boardId={boardId} />
+
+{jobs.map((job) => (
+  <Card key={job._id.toString()} className="bg-white shadow-sm">
+    <CardContent className="p-4 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-semibold text-sm text-gray-900">
+            {job.title}
+          </h3>
+
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Building2 className="h-4 w-4" />
+            <span>{job.company}</span>
+          </div>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-500 hover:bg-gray-100"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem>Move to Applied</DropdownMenuItem>
+            <DropdownMenuItem>Move to Interviewing</DropdownMenuItem>
+            <DropdownMenuItem>Move to Offer</DropdownMenuItem>
+            <DropdownMenuItem>Move to Rejected</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {job.location && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <MapPin className="h-4 w-4" />
+          <span>{job.location}</span>
+        </div>
+      )}
+
+      {job.description && (
+        <p className="line-clamp-2 text-xs text-gray-500">
+          {job.description}
+        </p>
+      )}
+    </CardContent>
+  </Card>
+))}
       </CardContent>
     </Card>
   );
@@ -93,7 +167,6 @@ export default function KanbanBoard({ board }: KanbanBoardProps) {
             color: "bg-gray-500",
             icon: <Calendar className="h-4 w-4" />,
           };
-
           return (
             <DroppableColumn
               key={col._id.toString()}
