@@ -55,7 +55,7 @@ export default function SignUpFields({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={8}
+          minLength={4}
         />
       </div>
     </div>
